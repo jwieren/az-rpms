@@ -1,0 +1,9 @@
+.git*
+.vscode
+local.settings.json
+test
+*.py[cod]
+__pycache__
+venv
+.venv
+*.zip

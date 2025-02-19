@@ -1,0 +1,20 @@
+repos:
+  - repo: https://github.com/terraform-docs/terraform-docs
+    rev: "v0.16.0"
+    hooks:
+      - id: terraform-docs-system
+        args: ["markdown", "table", "--output-file", "README.md", "./"]
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: "v1.83.6"
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_tflint
+      - id: terraform_validate
+
+  # - repo: https://gitlab.com/healthnz-ult/shared/pre-commit-hooks/pre-commit-trivy
+  #   rev: "v0.1.0"
+  #   hooks:
+  #     - id: trivyconfig-docker
+  #       # last arg indicates the path/file to scan
+  #       args: ["--skip-dirs", "./terraform", "."]

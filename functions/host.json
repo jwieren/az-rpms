@@ -1,0 +1,38 @@
+{
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "maxTelemetryItemsPerSecond": 20,
+        "excludedTypes": "Request;Exception"
+      },
+      "enableLiveMetricsFilters": true
+    },
+    "logLevel": {
+      "default": "Information",
+      "Host": "Warning",
+      "Host.Aggregate": "Information",
+      "Host.Results": "Information",
+      "Function": "Information",
+      "Azure.Core": "Warning",
+      "Microsoft": "Warning",
+      "azure.identity": "Error",
+      "Azure": "Warning",
+      "Worker": "Warning",
+      "Worker.rpcWorkerProcess": "Warning",
+      "Microsoft.Azure.WebJobs.Script.WebHost.Middleware.SystemTraceMiddleware": "None",
+      "azure.core.pipeline.policies.http_logging_policy": "Warning",
+      "System.Net.Http.HttpClient": "Warning"
+    }
+  },
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[3.15.0, 4.0.0)"
+  },
+  "extensions": {
+    "queues": {
+      "maxDequeueCount": 2
+    }
+  }
+}

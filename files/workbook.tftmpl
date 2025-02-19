@@ -1,0 +1,441 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Azure Resource Power Management\r\n\r\nThis workbook reports stats for the power management function app that can manage power states for various Azure resources. \r\n\r\nFurther information can be found at this link: ${more_info_url}\r\n"
+      },
+      "name": "text - 3"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 86400000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "id": "8a2ea697-5066-420e-86d0-30b1e0e27bb2"
+          }
+        ],
+        "style": "above",
+        "queryType": 0,
+        "resourceType": "microsoft.web/sites"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Overall status",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\r\n| extend parsed_message = todynamic(tostring(message))\r\n| extend valid_json = iff(isnotempty(bag_keys(parsed_message)), parsed_message, dynamic(null))\r\n| evaluate bag_unpack(valid_json)\r\n| make-series \r\n    ['Start Events'] = countif(action == \"start\" and result == \"succeeded\"),\r\n    ['Stop Events'] = countif(action == \"stop\" and result == \"succeeded\"),\r\n    ['Start Pre-Maintenance'] = countif(action == \"start_for_updates\" and result == \"succeeded\"),\r\n    ['Stop Post-Maintenance'] = countif(action == \"stop_post_updates\" and result == \"succeeded\")\r\n    on timestamp from {TimeRange:start} to {TimeRange:end} step 1h\r\n    by type\r\n| render timechart",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Successful Events",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                "${linked_resource_id}"
+              ],
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Start Events",
+                    "label": "Successful Start Events",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Stop Events",
+                    "label": "Successful Stop Events",
+                    "color": "orange"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces | \r\nwhere operation_Name == \"process_powermgmt_event_check\" and message contains \"\\\"event\\\"\" \r\n| extend parsed_message = todynamic(tostring(message))\r\n| extend valid_json = iff(isnotempty(bag_keys(parsed_message)), parsed_message, dynamic(null))\r\n| evaluate bag_unpack(valid_json)\r\n| where isnotempty(action)\r\n| project timestamp, resourceId, action, powerState, result, wait_retries\r\n| order by timestamp desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Recent power mgmt events",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                "${linked_resource_id}"
+              ]
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\r\n| where type == \"microsoft.compute/virtualmachines\"\r\n| summarize \r\n    total_vms = count(),\r\n    vms_with_powermgmt_tag = countif(isnotnull(tags.Schedule) or isnotnull(tags.PowerOff) or isnotnull(tags.PowerOn))\r\n    by subscriptionId\r\n| extend percentage = (toreal(vms_with_powermgmt_tag) * 100.0 / total_vms), vms_without_tag = (total_vms - vms_with_powermgmt_tag)\r\n| project \r\n    subscriptionId,\r\n    ['VMs without Schedule tag'] = vms_without_tag,\r\n    ['VMs with Schedule tag'] = vms_with_powermgmt_tag,\r\n    ['% Coverage'] = round(percentage, 2)\r\n| order by ['VMs without Schedule tag'] desc\r\n",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "VM Power Management Tag Coverage",
+              "queryType": 1,
+              "resourceType": "microsoft.resources/tenants",
+              "crossComponentResources": [
+                "value::tenant"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "subscriptionId",
+                    "formatter": 15,
+                    "formatOptions": {
+                      "linkTarget": "Resource",
+                      "showIcon": true
+                    }
+                  },
+                  {
+                    "columnMatch": "% Coverage",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redGreen"
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal"
+                      }
+                    }
+                  }
+                ],
+                "sortBy": [
+                  {
+                    "itemKey": "VMs without Schedule tag",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "VMs without Schedule tag",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "customWidth": "50",
+            "name": "query - 2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\r\n| where message contains \"\\\"event\\\"\" \r\n| extend parsed_message = todynamic(tostring(message))\r\n| extend valid_json = iff(isnotempty(bag_keys(parsed_message)), parsed_message, dynamic(null))\r\n| evaluate bag_unpack(valid_json)\r\n| project timestamp, resourceId, event, action, powerState, result, wait_retries\r\n| order by timestamp desc, resourceId desc\r\n| take 100",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Recent log events",
+              "timeContext": {
+                "durationMs": 86400000
+              },
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                   "${linked_resource_id}"
+              ]
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          }
+        ]
+      },
+      "name": "Success Group"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Error Metrics",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\r\n| extend parsed_message = todynamic(tostring(message))\r\n| extend valid_json = iff(isnotempty(bag_keys(parsed_message)), parsed_message, dynamic(null))\r\n| evaluate bag_unpack(valid_json)\r\n| make-series \r\n    ['Start Events'] = countif(action == \"start\" and result == \"failed\"),\r\n    ['Stop Events'] = countif(action == \"stop\" and result == \"failed\"),\r\n    ['Failed Tag Checks'] = countif(event == \"tagcheck\")\r\n    on timestamp from {TimeRange:start} to {TimeRange:end} step 1h\r\n    by type\r\n| render timechart",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Failed events",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                "${linked_resource_id}"
+              ],
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Start Events",
+                    "label": "Failed Start Events",
+                    "color": "purple"
+                  },
+                  {
+                    "seriesName": "Stop Events",
+                    "label": "Failed Stop Events",
+                    "color": "redBright"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "requests\r\n| project\r\n    timestamp,\r\n    id,\r\n    operation_Name,\r\n    success,\r\n    resultCode,\r\n    duration,\r\n    operation_Id,\r\n    cloud_RoleName,\r\n    invocationId=customDimensions['InvocationId']\r\n| extend hour = bin(timestamp, 1h)\r\n| summarize \r\n    failure_count = countif(success == False)\r\n    by operation_Name, hour\r\n",
+              "size": 1,
+              "showAnalytics": true,
+              "title": "Power management event processing errors",
+              "noDataMessageStyle": 5,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                "${linked_resource_id}"
+              ],
+              "visualization": "timechart",
+              "tileSettings": {
+                "showBorder": false,
+                "titleContent": {
+                  "columnMatch": "operation_Name",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "failure_count",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                }
+              },
+              "graphSettings": {
+                "type": 0,
+                "topContent": {
+                  "columnMatch": "operation_Name",
+                  "formatter": 1
+                },
+                "centerContent": {
+                  "columnMatch": "failure_count",
+                  "formatter": 1,
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                }
+              },
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "sizeSettings": "failure_count",
+                "sizeAggregation": "Sum",
+                "legendMetric": "failure_count",
+                "legendAggregation": "Sum",
+                "itemColorSettings": {
+                  "type": "heatmap",
+                  "colorAggregation": "Sum",
+                  "nodeColorField": "failure_count",
+                  "heatmapPalette": "greenRed"
+                }
+              }
+            },
+            "customWidth": "50",
+            "name": "Error counts"
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "021b7af9-e1df-4c79-ab7b-2a691e89bf2e",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "color": "redBright",
+              "resourceType": "microsoft.storage/storageaccounts",
+              "metricScope": 0,
+              "resourceIds": [
+                "${storage_account_id}"
+              ],
+              "timeContextFromParameter": "TimeRange",
+              "timeContext": {
+                "durationMs": 86400000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.storage/storageaccounts/queueservices",
+                  "metric": "microsoft.storage/storageaccounts/queueservices-Capacity-QueueMessageCount",
+                  "aggregation": 4
+                }
+              ],
+              "title": "Error queue depth count",
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "Queue message count"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "exceptions  | project timestamp, outerMessage, innermostMessage |  order by timestamp desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Exceptions in logs",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                "${linked_resource_id}"
+              ]
+            },
+            "customWidth": "50",
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "traces\r\n| extend parsed_message = todynamic(tostring(message))\r\n| extend valid_json = iff(isnotempty(bag_keys(parsed_message)), parsed_message, dynamic(null))\r\n| evaluate bag_unpack(valid_json)\r\n| where event == \"tagcheck\"\r\n| project timestamp, resourceId, invalid_tag = strcat(\"Tag \", extract(@\".*has invalid tag(.*)\", 1, debug))\r\n| summarize \r\n  last_reported = max(timestamp)\r\n  by resourceId, invalid_tag\r\n| project resourceId, invalid_tag\r\n| order by resourceId\r\n\r\n\r\n    ",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Resources with incorrect tags",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "crossComponentResources": [
+                "${linked_resource_id}"
+              ]
+            },
+            "customWidth": "50",
+            "name": "query - 4"
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbook08aac7bf-4d63-4faa-a5ac-8db1068b1c15",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.insights/components",
+              "metricScope": 0,
+              "resourceIds": [
+                "${linked_resource_id}"
+              ],
+              "timeContextFromParameter": "TimeRange",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.insights/components/kusto",
+                  "metric": "microsoft.insights/components/kusto-Server-requests/duration",
+                  "aggregation": 4,
+                  "splitBy": null
+                }
+              ],
+              "title": "Function response time",
+              "showOpenInMe": true,
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "50",
+            "name": "metric - 3"
+          }
+        ]
+      },
+      "name": "Error Metrics Group"
+    }
+  ],
+  "fallbackResourceIds": [
+    "${func_id}"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

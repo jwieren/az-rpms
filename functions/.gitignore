@@ -1,0 +1,6 @@
+.venv
+__pycache__
+local.settings.json
+*.zip
+
+.python_packages

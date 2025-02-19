@@ -1,0 +1,28 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+      "FUNCTIONS_WORKER_RUNTIME": "python",
+      "PYTHON_ENABLE_WORKER_EXTENSIONS": "1",
+      "PYTHON_ISOLATE_WORKER_DEPENDENCIES": "1",
+      "QUEUE_POWERMGMT_EVENTS": "queue-test-powermgmt-events",
+      "QUEUE_PROCESS_UPDATEMGMT_EVENT": "queue-test-azure-updatemgmt-events",
+      "QUEUE_PROCESS_SUBS": "queue-test-sub-processing",
+      "QUEUE_POWERMGMT_DEFERRED_CHECKS": "queue-test-powermgmt-check-wait-events",
+      "DEFER_POWERMGMT_RESULT_CHECKS": true,
+      "MG_SCOPES": null,
+      "SUB_SCOPES": "__THE SUB_ID TO RUN POWERMGMT AGAINST__",
+      "RESOURCEGRAPH_MG_SCOPE": "__THE MG TO SCOPE READ QUERIES AGAINST__",
+      "TRIGGER_INTERVAL": "3",
+      "STORAGE_ACCOUNT": "__THE_STORAGE_ACCOUNT__",
+      "RESET_LAST_INVOCATION": "true",
+      "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=__THE_STORAGE_ACCOUNT__;AccountKey=__THE_SHARED_ACCESS_KEY__;EndpointSuffix=core.windows.net",
+      "logging:applicationInsights:enableLiveMetricsFilters": true,
+      "logging:logLevel:Microsoft": "Warning",
+      "logging:logLevel:Azure.Core": "Warning",
+      "logging:logLevel:Azure": "Warning",
+      "logging:logLevel:Worker": "Warning",
+      "logging:logLevel:Worker.rpcWorkerProcess": "Warning",
+      "logging:logLevel:Microsoft.Azure.WebJobs.Script.WebHost.Middleware.SystemTraceMiddleware": "None",
+      "logging:logLevel:azure.core.pipeline.policies.http_logging_policy": "Warning"
+    }
+  }
